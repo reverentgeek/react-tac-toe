@@ -74,16 +74,35 @@ var gameHelpers = {
 		}
 		return null;
 	},
+	isWinnable: function( selectedBoxes ) {
+		if ( this.availableMoves( selectedBoxes ) === 0 ) return false;
+		var xs = [];
+		var os = [];
+		for ( var i = 0; i < selectedBoxes.length; i++ ) {
+			if ( selectedBoxes[i] !== "" ) {
+				xs.push( selectedBoxes[i] );
+				os.push( selectedBoxes[i] );
+			} else {
+				xs.push( "x" );
+				os.push( "o" );
+			}
+		}
+		return ( this.isWinningSet( xs ) === "x" || this.isWinningSet( os ) === "s" );
+	},
+	availableMoves: function( selectedBoxes ) {
+		var moves = [];
+		for ( var i = 0; i < selectedBoxes.length; i++ ) {
+			if ( selectedBoxes[i] === "" ) {
+				moves.push( i );
+			}
+		}
+		return moves;
+	},
 	nextPossibleMove: function( selectedBoxes, currentTurn ) {
 		var b = selectedBoxes;
 		var p = currentTurn;
 		var opponent = ( p === "o" ) ? "x" : "o";
-		var availableMoves = [];
-		for ( var i = 0; i < b.length; i++ ) {
-			if ( b[i] === "" ) {
-				availableMoves.push( i );
-			}
-		}
+		var availableMoves = this.availableMoves( selectedBoxes );
 
 		if ( availableMoves.length === 0 ) {
 			return null;
@@ -158,10 +177,15 @@ var Main = React.createClass( {
 		var turn = this.state.currentTurn;
 		sb[index] = turn;
 
+		var win = gameHelpers.isWinningSet( sb );
+		if ( !!win === false && !gameHelpers.isWinnable( sb ) ) {
+			win = "t";
+		}
+		console.log( win );
 		var newState = {
 			selectedBoxes: sb,
 			currentTurn: turn === "x" ? "o" : "x",
-			winner: gameHelpers.isWinningSet( sb )
+			winner: win
 		};
 
 		this.setState( newState, function() {
@@ -170,11 +194,11 @@ var Main = React.createClass( {
 			}
 		} );
 	},
-	makeComputerMove: function () {
+	makeComputerMove: function() {
 		var nextMove = gameHelpers.nextPossibleMove( this.state.selectedBoxes, this.state.currentTurn );
 		this.makeMove( nextMove );
 	},
-	renderGame: function ( gameOver ) {
+	renderGame: function( gameOver ) {
 		return (
 			<div>
 				<GameGrid selectedBoxes={ this.state.selectedBoxes } makeMove={ gameOver ? null : this.makeMove } />
