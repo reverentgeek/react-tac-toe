@@ -1,0 +1,13 @@
+#game-table td {
+  width: 33%;
+  text-align: center;
+  padding: 0;
+}
+.turn-button {
+  text-align: center;
+  cursor: pointer;
+  font-size: 1.5em;
+  font-weight: bold;
+  padding: 20px 10px;
+  min-width: 90px;
+}
