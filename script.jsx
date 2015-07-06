@@ -1,65 +1,38 @@
 var StartNewGame = React.createClass( {
 	render: function() {
-		if ( this.props.winner || this.props.started === false ) {
-			return (
-				<div>
-					<button className="btn btn-primary" onClick={ this.props.resetGame.bind( null, 1 ) }>Start 1-Player</button>
-					&nbsp;
-					<button className="btn btn-primary" onClick={ this.props.resetGame.bind( null, 2 ) }>Start 2-Player</button>
-				</div>
-				);
-		} else {
-			return <div></div>;
-		}
+		return (
+			<div>
+				<button className="btn btn-primary" onClick={ this.props.onPlayersSelect.bind( null, 1 ) }>Start 1-Player</button>
+				&nbsp;
+				<button className="btn btn-primary" onClick={ this.props.onPlayersSelect.bind( null, 2 ) }>Start 2-Player</button>
+			</div>
+			);
 	}
 } );
 
-var WinnerStatus = React.createClass( {
+var GameStatus = React.createClass( {
+	statics: {
+		winnerStatuses: {
+			x: "X wins!",
+			o: "O wins!",
+			t: "Tie!"
+		}
+	},
 	render: function() {
-		if ( this.props.started === false ) {
-			return ( <div></div> );
-		}
-		var r;
-		var winner = this.props.winner;
-		switch ( winner ) {
-			case "x":
-				r = "X wins!";
-				break;
-			case "o":
-				r = "O wins!";
-				break;
-			case "t":
-				r = "Tie!";
-				break;
-			default:
-				r = "Current turn: " + this.props.currentTurn;
-				break;
-		}
-		return <div className="well"><h2>{ r }</h2></div>;
+		var status = GameStatus.winnerStatuses[ this.props.winner ] || "Current turn: " + this.props.currentTurn;
+		return <div className="well"><h2>{ status }</h2></div>;
 	}
 } );
+
 var GameGrid = React.createClass( {
 	render: function() {
-		if ( this.props.started === false ) {
-			return ( <div></div> );
-		}
 		var makeMove = this.props.makeMove;
 		var b = this.props.selectedBoxes.map( function( s, i ) {
-			var btn;
-			switch ( s ) {
-				case "x":
-					btn = <div className="turn-button disabled">X</div>;
-					break;
-				case "o":
-					btn = <div className="turn-button disabled">O</div>;
-					break;
-				default:
-					btn = <div className="turn-button" onClick={ makeMove.bind( null, i ) } >&nbsp;</div>;
-					break;
-				break;
+			if ( s ) {
+				return <div className="turn-button disabled">{ s.toUpperCase() }</div>;
+			} else if ( makeMove ) {
+				return <div className="turn-button" onClick={ makeMove.bind( null, i ) }>&nbsp;</div>;
 			}
-			//<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-			return btn;
 		} );
 		return ( <table id="game-table" className="table table-bordered">
 			<tr><td>{ b[0] }</td><td>{ b[1] }</td><td>{ b[2] }</td></tr>
@@ -69,41 +42,7 @@ var GameGrid = React.createClass( {
 	}
 } );
 
-var Main = React.createClass( {
-	getInitialState: function() {
-		var b = [ "", "", "", "", "", "", "", "", "" ];
-		return { winner: null, selectedBoxes: b, currentTurn: "x", started: false };
-	},
-	resetGame: function( numOfPlayers ) {
-		this.replaceState( this.getInitialState() );
-		this.setState( { numOfPlayers: numOfPlayers, started: true } );
-	},
-	makeMove: function( index ) {
-		if ( this.state.winner ) {
-			return;
-		}
-		var sb = this.state.selectedBoxes;
-		var turn = this.state.currentTurn;
-		sb[index] = turn;
-		if ( turn === "x" ) {
-			turn = "o";
-		} else {
-			turn = "x";
-		}
-		this.setState( { selectedButtons: sb, currentTurn: turn }, function() {
-			this.calculateWinner( function() {
-				if ( !this.state.winner && this.state.numOfPlayers === 1 && this.state.currentTurn === "o" ) {
-					var nextMove = this.nextPossibleMove();
-					if ( nextMove || nextMove === 0 ) {
-						this.makeMove( nextMove );
-					} else {
-						// declare a tie
-						this.setState( { winner: "t" } );
-					}
-				}
-			} );
-		} );
-	},
+var gameHelpers = {
 	isWinningSet: function( selectedBoxes ) {
 		var b = selectedBoxes;
 		if ( b[0] !== "" && b[0] === b[1] && b[1] === b[2] ) {
@@ -135,14 +74,9 @@ var Main = React.createClass( {
 		}
 		return null;
 	},
-	calculateWinner: function( callback ) {
-		var b = this.state.selectedBoxes;
-		var w = this.isWinningSet( b );
-		this.setState( { winner: w }, callback );
-	},
-	nextPossibleMove: function() {
-		var b = this.state.selectedBoxes;
-		var p = this.state.currentTurn;
+	nextPossibleMove: function( selectedBoxes, currentTurn ) {
+		var b = selectedBoxes;
+		var p = currentTurn;
 		var opponent = ( p === "o" ) ? "x" : "o";
 		var availableMoves = [];
 		for ( var i = 0; i < b.length; i++ ) {
@@ -205,20 +139,67 @@ var Main = React.createClass( {
 
 		// take next available move
 		return availableMoves[0];
+	}
+};
+
+var Main = React.createClass( {
+	getInitialState: function() {
+		var b = [ "", "", "", "", "", "", "", "", "" ];
+		return { winner: null, selectedBoxes: b, currentTurn: "x", started: false };
+	},
+	resetGame: function( numOfPlayers ) {
+		var newState = this.getInitialState();
+		newState.numOfPlayers = numOfPlayers;
+		newState.started = true;
+		this.setState( newState );
+	},
+	makeMove: function( index ) {
+		var sb = this.state.selectedBoxes;
+		var turn = this.state.currentTurn;
+		sb[index] = turn;
+
+		var newState = {
+			selectedBoxes: sb,
+			currentTurn: turn === "x" ? "o" : "x",
+			winner: gameHelpers.isWinningSet( sb )
+		};
+
+		this.setState( newState, function() {
+			if ( !this.state.winner && this.state.numOfPlayers === 1 && this.state.currentTurn === "o" ) {
+				this.makeComputerMove();
+			}
+		} );
+	},
+	makeComputerMove: function () {
+		var nextMove = gameHelpers.nextPossibleMove( this.state.selectedBoxes, this.state.currentTurn );
+		this.makeMove( nextMove );
+	},
+	renderGame: function ( gameOver ) {
+		return (
+			<div>
+				<GameGrid selectedBoxes={ this.state.selectedBoxes } makeMove={ gameOver ? null : this.makeMove } />
+				<GameStatus winner={ this.state.winner } currentTurn={ this.state.currentTurn } />
+			</div>
+			);
 	},
 	render: function() {
+		var gameStarted = this.state.started;
+		var gameOver = !!this.state.winner;
+
+		var gameControls = <StartNewGame onPlayersSelect={ this.resetGame } />;
+		var showGameControls = !gameStarted || gameOver;
+
 		return (
 			<div>
 				<h1>React-Tac-Toe</h1>
-				<GameGrid selectedBoxes={ this.state.selectedBoxes } started={ this.state.started } winner={ this.state.winner } makeMove={ this.makeMove } />
-				<WinnerStatus winner={ this.state.winner } started={ this.state.started } currentTurn={ this.state.currentTurn } />
-				<StartNewGame winner={ this.state.winner } started={ this.state.started } resetGame={ this.resetGame } />
+				{ gameStarted ? this.renderGame( gameOver ) : null }
+				{ showGameControls ? gameControls : null }
 			</div>
 			);
 	}
 } );
 
 React.render(
-	<Main name="World" />,
+	<Main />,
 	document.getElementById( "container" )
 );
