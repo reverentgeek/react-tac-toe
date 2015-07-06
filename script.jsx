@@ -6,7 +6,8 @@ var StartNewGame = React.createClass( {
 					<button className="btn btn-primary" onClick={ this.props.resetGame.bind( null, 1 ) }>Start 1-Player</button>
 					&nbsp;
 					<button className="btn btn-primary" onClick={ this.props.resetGame.bind( null, 2 ) }>Start 2-Player</button>
-				</div> );
+				</div>
+				);
 		} else {
 			return <div></div>;
 		}
@@ -84,14 +85,14 @@ var Main = React.createClass( {
 		var sb = this.state.selectedBoxes;
 		var turn = this.state.currentTurn;
 		sb[index] = turn;
-		if ( turn === 'x' ) {
-			turn = 'o';
+		if ( turn === "x" ) {
+			turn = "o";
 		} else {
-			turn = 'x';
+			turn = "x";
 		}
 		this.setState( { selectedButtons: sb, currentTurn: turn }, function() {
 			this.calculateWinner( function() {
-				if ( !this.state.winner && this.state.numOfPlayers === 1 && this.state.currentTurn === 'o' ) {
+				if ( !this.state.winner && this.state.numOfPlayers === 1 && this.state.currentTurn === "o" ) {
 					var nextMove = this.nextPossibleMove();
 					if ( nextMove || nextMove === 0 ) {
 						this.makeMove( nextMove );
@@ -145,10 +146,14 @@ var Main = React.createClass( {
 		var opponent = ( p === "o" ) ? "x" : "o";
 		var availableMoves = [];
 		for ( var i = 0; i < b.length; i++ ) {
-			if ( b[i] === "" ) availableMoves.push( i );
+			if ( b[i] === "" ) {
+				availableMoves.push( i );
+			}
 		}
 
-		if ( availableMoves.length === 0 ) return null;
+		if ( availableMoves.length === 0 ) {
+			return null;
+		}
 
 		// is there a play where p can win?
 		for ( var i = 0; i < availableMoves.length; i++ ) {
@@ -177,7 +182,9 @@ var Main = React.createClass( {
 			var m1 = availableMoves[i];
 			b[m1] = p;
 			for ( var j = 0; j < availableMoves.length; j++ ) {
-				if ( i === j ) continue;
+				if ( i === j ) {
+					continue;
+				}
 				var m2 = availableMoves[j];
 				b[m2] = p;
 				if ( p === this.isWinningSet( b ) ) {
@@ -209,8 +216,9 @@ var Main = React.createClass( {
 			</div>
 			);
 	}
-} )
+} );
+
 React.render(
 	<Main name="World" />,
-	document.getElementById( 'container' )
+	document.getElementById( "container" )
 );
