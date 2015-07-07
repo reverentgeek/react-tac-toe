@@ -81,20 +81,51 @@ var gameHelpers = {
 		}
 		return null;
 	},
-	isWinnable: function( selectedMoves, nextTurn ) {
+	isWinnable: function( selectedMoves, nextTurn, requiredTurn ) {
 		var moves = this.availableMoves( selectedMoves );
-		if ( moves.length === 0 ) return false;
+		if ( moves.length === 0 ) {
+			return "";
+		}
 		for ( var i = 0; i < moves.length; i++ ) {
 			var testMoves = this.copyMoves( selectedMoves );
 			testMoves[moves[i]] = nextTurn;
 			var win = this.isWinningSet( testMoves );
 			if ( win && win !== "t" ) {
-				return true;
-			} else if ( this.isWinnable( testMoves, nextTurn === "x" ? "o" : "x" ) ) {
-				return true;
+				if ( requiredTurn ) {
+					if ( win === requiredTurn ) {
+						return true;
+					}
+				} else {
+					return true;
+				}
+			} else {
+				win = this.isWinnable( testMoves, nextTurn === "x" ? "o" : "x", requiredTurn );
+				if ( win ) {
+					return true;
+				}
 			}
 		}
 		return false;
+	},
+	availableWinningMoves: function( selectedMoves, currentTurn ) {
+		var moves = this.availableMoves( selectedMoves );
+		var winningMoves = [];
+		if ( moves.length === 0 ) {
+			return winningMoves;
+		}
+		for ( var i = 0; i < moves.length; i++ ) {
+			var testMoves = this.copyMoves( selectedMoves );
+			testMoves[moves[i]] = currentTurn;
+			var win = this.isWinningSet( testMoves );
+			if ( win === currentTurn ) {
+				winningMoves.push( moves[i] );
+			} else {
+				if ( this.isWinnable( testMoves, currentTurn === "x" ? "o" : "x", currentTurn ) ) {
+					winningMoves.push( moves[i] );
+				}
+			}
+		}
+		return winningMoves;
 	},
 	availableMoves: function( selectedMoves ) {
 		var moves = [];
@@ -137,30 +168,15 @@ var gameHelpers = {
 			}
 		}
 
-		// is there a winning move in two moves?
-		for ( var i = 0; i < availableMoves.length; i++ ) {
-			var m1 = availableMoves[i];
-			b[m1] = p;
-			for ( var j = 0; j < availableMoves.length; j++ ) {
-				if ( i === j ) {
-					continue;
-				}
-				var m2 = availableMoves[j];
-				b[m2] = p;
-				if ( p === this.isWinningSet( b ) ) {
-					b[m1] = "";
-					b[m2] = "";
-					return m1;
-				} else {
-					b[m2] = "";
-				}
-			}
-			b[m1] = "";
-		}
-
 		// Take center, if available
 		if ( b[4] === "" ) {
 			return 4;
+		}
+
+		// is there a winning move available?
+		var wins = this.availableWinningMoves( selectedMoves, currentTurn );
+		if ( wins && wins.length > 0 ) {
+			return wins[0];
 		}
 
 		// take next available move

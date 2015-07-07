@@ -1,3 +1,6 @@
+#container {
+	max-width: 500px;
+}
 #game-table td {
   width: 33%;
   text-align: center;
