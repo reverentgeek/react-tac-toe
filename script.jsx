@@ -27,7 +27,7 @@ var GameStatus = React.createClass( {
 var GameGrid = React.createClass( {
 	render: function() {
 		var makeMove = this.props.makeMove;
-		var b = this.props.selectedBoxes.map( function( s, i ) {
+		var b = this.props.selectedMoves.map( function( s, i ) {
 			if ( s ) {
 				return <div className="turn-button disabled">{ s.toUpperCase() }</div>;
 			} else if ( makeMove ) {
@@ -43,8 +43,15 @@ var GameGrid = React.createClass( {
 } );
 
 var gameHelpers = {
-	isWinningSet: function( selectedBoxes ) {
-		var b = selectedBoxes;
+	copyMoves: function( selectedMoves ) {
+		var moves = [];
+		for ( var i = 0; i < selectedMoves.length; i++ ) {
+			moves.push( selectedMoves[i] );
+		}
+		return moves;
+	},
+	isWinningSet: function( selectedMoves ) {
+		var b = selectedMoves;
 		if ( b[0] !== "" && b[0] === b[1] && b[1] === b[2] ) {
 			return b[0];
 		}
@@ -74,35 +81,35 @@ var gameHelpers = {
 		}
 		return null;
 	},
-	isWinnable: function( selectedBoxes ) {
-		if ( this.availableMoves( selectedBoxes ) === 0 ) return false;
-		var xs = [];
-		var os = [];
-		for ( var i = 0; i < selectedBoxes.length; i++ ) {
-			if ( selectedBoxes[i] !== "" ) {
-				xs.push( selectedBoxes[i] );
-				os.push( selectedBoxes[i] );
-			} else {
-				xs.push( "x" );
-				os.push( "o" );
+	isWinnable: function( selectedMoves, nextTurn ) {
+		var moves = this.availableMoves( selectedMoves );
+		if ( moves.length === 0 ) return false;
+		for ( var i = 0; i < moves.length; i++ ) {
+			var testMoves = this.copyMoves( selectedMoves );
+			testMoves[moves[i]] = nextTurn;
+			var win = this.isWinningSet( testMoves );
+			if ( win && win !== "t" ) {
+				return true;
+			} else if ( this.isWinnable( testMoves, nextTurn === "x" ? "o" : "x" ) ) {
+				return true;
 			}
 		}
-		return ( this.isWinningSet( xs ) === "x" || this.isWinningSet( os ) === "s" );
+		return false;
 	},
-	availableMoves: function( selectedBoxes ) {
+	availableMoves: function( selectedMoves ) {
 		var moves = [];
-		for ( var i = 0; i < selectedBoxes.length; i++ ) {
-			if ( selectedBoxes[i] === "" ) {
+		for ( var i = 0; i < selectedMoves.length; i++ ) {
+			if ( selectedMoves[i] === "" ) {
 				moves.push( i );
 			}
 		}
 		return moves;
 	},
-	nextPossibleMove: function( selectedBoxes, currentTurn ) {
-		var b = selectedBoxes;
+	nextPossibleMove: function( selectedMoves, currentTurn ) {
+		var b = selectedMoves;
 		var p = currentTurn;
 		var opponent = ( p === "o" ) ? "x" : "o";
-		var availableMoves = this.availableMoves( selectedBoxes );
+		var availableMoves = this.availableMoves( selectedMoves );
 
 		if ( availableMoves.length === 0 ) {
 			return null;
@@ -164,7 +171,7 @@ var gameHelpers = {
 var Main = React.createClass( {
 	getInitialState: function() {
 		var b = [ "", "", "", "", "", "", "", "", "" ];
-		return { winner: null, selectedBoxes: b, currentTurn: "x", started: false };
+		return { winner: null, selectedMoves: b, currentTurn: "x", started: false };
 	},
 	resetGame: function( numOfPlayers ) {
 		var newState = this.getInitialState();
@@ -173,18 +180,18 @@ var Main = React.createClass( {
 		this.setState( newState );
 	},
 	makeMove: function( index ) {
-		var sb = this.state.selectedBoxes;
+		var sb = this.state.selectedMoves;
 		var turn = this.state.currentTurn;
+		var nextTurn = turn === "x" ? "o" : "x";
 		sb[index] = turn;
 
 		var win = gameHelpers.isWinningSet( sb );
-		if ( !!win === false && !gameHelpers.isWinnable( sb ) ) {
+		if ( !!win === false && !gameHelpers.isWinnable( sb, nextTurn ) ) {
 			win = "t";
 		}
-		console.log( win );
 		var newState = {
-			selectedBoxes: sb,
-			currentTurn: turn === "x" ? "o" : "x",
+			selectedMoves: sb,
+			currentTurn: nextTurn,
 			winner: win
 		};
 
@@ -195,13 +202,13 @@ var Main = React.createClass( {
 		} );
 	},
 	makeComputerMove: function() {
-		var nextMove = gameHelpers.nextPossibleMove( this.state.selectedBoxes, this.state.currentTurn );
+		var nextMove = gameHelpers.nextPossibleMove( this.state.selectedMoves, this.state.currentTurn );
 		this.makeMove( nextMove );
 	},
 	renderGame: function( gameOver ) {
 		return (
 			<div>
-				<GameGrid selectedBoxes={ this.state.selectedBoxes } makeMove={ gameOver ? null : this.makeMove } />
+				<GameGrid selectedMoves={ this.state.selectedMoves } makeMove={ gameOver ? null : this.makeMove } />
 				<GameStatus winner={ this.state.winner } currentTurn={ this.state.currentTurn } />
 			</div>
 			);
