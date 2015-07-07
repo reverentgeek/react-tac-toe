@@ -176,7 +176,12 @@ var gameHelpers = {
 		// is there a winning move available?
 		var wins = this.availableWinningMoves( selectedMoves, currentTurn );
 		if ( wins && wins.length > 0 ) {
-			return wins[0];
+			if ( wins.length === 1 ) {
+				return wins[0];
+			} else {
+				var index = Math.floor( ( Math.random() * wins.length ) );
+				return wins[index];
+			}
 		}
 
 		// take next available move
